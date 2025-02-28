@@ -26,6 +26,8 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Send, Loader2 } from 'lucide-react';
+import { useSubmitLocation } from '@/hooks/use-data';
+import { prepareSubmissionForInsert } from '@/lib/adapters';
 
 const formSchema = z.object({
   mosqueName: z.string().min(2, {
@@ -60,8 +62,7 @@ const formSchema = z.object({
 });
 
 const SubmissionForm = () => {
-  const { toast } = useToast();
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const submitLocation = useSubmitLocation();
   
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -82,20 +83,14 @@ const SubmissionForm = () => {
     },
   });
   
-  function onSubmit(values: z.infer<typeof formSchema>) {
-    setIsSubmitting(true);
-    
-    // Simulate API call
-    setTimeout(() => {
-      console.log(values);
-      setIsSubmitting(false);
-      toast({
-        title: "Submission Received",
-        description: "Thank you for your contribution. Your submission will be reviewed shortly.",
-        duration: 5000,
-      });
+  async function onSubmit(values: z.infer<typeof formSchema>) {
+    try {
+      const data = prepareSubmissionForInsert(values);
+      await submitLocation.mutateAsync(data);
       form.reset();
-    }, 1500);
+    } catch (error) {
+      console.error("Error submitting form:", error);
+    }
   }
 
   return (
@@ -396,9 +391,9 @@ const SubmissionForm = () => {
           <Button 
             type="submit" 
             className="w-full bg-islamic-600 hover:bg-islamic-700 text-white"
-            disabled={isSubmitting}
+            disabled={submitLocation.isPending}
           >
-            {isSubmitting ? (
+            {submitLocation.isPending ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                 Submitting...

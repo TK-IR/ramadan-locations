@@ -5,54 +5,11 @@ import LocationsGrid from '@/components/LocationsGrid';
 import { Button } from "@/components/ui/button";
 import { Link } from 'react-router-dom';
 import { MapPin, Calendar, ClipboardEdit } from 'lucide-react';
-import { Location } from '@/components/LocationCard';
-
-const featuredLocations: Location[] = [
-  {
-    id: '1',
-    name: 'Melbourne Mosque',
-    address: '765 Racecourse Rd',
-    suburb: 'North Melbourne',
-    state: 'VIC',
-    time: '8:00 PM',
-    rakaat: 20,
-    hasWomensArea: true,
-    hasWuduFacilities: true,
-    hasParking: true,
-    parkingType: 'Street',
-    distance: 2.5,
-  },
-  {
-    id: '2',
-    name: 'Islamic Society of Victoria',
-    address: '90 Cramer Street',
-    suburb: 'Preston',
-    state: 'VIC',
-    time: '8:15 PM',
-    rakaat: 20,
-    hasWomensArea: true,
-    hasWuduFacilities: true,
-    hasParking: true,
-    parkingType: 'Dedicated',
-    distance: 5.1,
-  },
-  {
-    id: '3',
-    name: 'Broadmeadows Mosque',
-    address: '45 King Street',
-    suburb: 'Broadmeadows',
-    state: 'VIC',
-    time: '7:45 PM',
-    rakaat: 8,
-    hasWomensArea: true,
-    hasWuduFacilities: true,
-    hasParking: true,
-    parkingType: 'Dedicated',
-    distance: 8.3,
-  }
-];
+import { useFeaturedLocations } from '@/hooks/use-data';
 
 const Index = () => {
+  const { data: featuredLocations = [], isLoading } = useFeaturedLocations();
+
   return (
     <div className="min-h-screen flex flex-col">
       <main className="flex-grow">
@@ -69,7 +26,7 @@ const Index = () => {
               </p>
             </div>
             
-            <LocationsGrid locations={featuredLocations} />
+            <LocationsGrid locations={featuredLocations} isLoading={isLoading} />
             
             <div className="mt-10 text-center">
               <Link to="/locations">

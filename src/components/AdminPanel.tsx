@@ -22,8 +22,15 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { 
+  useSubmissions, 
+  useApproveSubmission, 
+  useRejectSubmission, 
+  useDeleteSubmission,
+  useUpdateSubmission
+} from '@/hooks/use-data';
 
-interface Submission {
+export interface Submission {
   id: string;
   mosqueName: string;
   address: string;
@@ -34,66 +41,22 @@ interface Submission {
   hasWomensArea: boolean;
   hasWuduFacilities: boolean;
   hasParking: boolean;
+  parkingType?: 'Street' | 'Dedicated';
   submitterName: string;
   submitterEmail: string;
+  additionalInfo?: string;
   status: 'pending' | 'approved' | 'rejected';
   submittedAt: Date;
 }
 
-const mockSubmissions: Submission[] = [
-  {
-    id: '1',
-    mosqueName: 'Melbourne Mosque',
-    address: '765 Racecourse Rd',
-    suburb: 'North Melbourne',
-    state: 'VIC',
-    time: '8:00 PM',
-    rakaat: '20',
-    hasWomensArea: true,
-    hasWuduFacilities: true,
-    hasParking: true,
-    submitterName: 'Ahmed Khan',
-    submitterEmail: 'ahmed@example.com',
-    status: 'pending',
-    submittedAt: new Date('2024-03-10T14:30:00'),
-  },
-  {
-    id: '2',
-    mosqueName: 'Sydney Islamic Centre',
-    address: '15 Baker Street',
-    suburb: 'Auburn',
-    state: 'NSW',
-    time: '8:30 PM',
-    rakaat: '8',
-    hasWomensArea: true,
-    hasWuduFacilities: true,
-    hasParking: false,
-    submitterName: 'Sara Ahmed',
-    submitterEmail: 'sara@example.com',
-    status: 'pending',
-    submittedAt: new Date('2024-03-11T16:45:00'),
-  },
-  {
-    id: '3',
-    mosqueName: 'Preston Mosque',
-    address: '90 Cramer Street',
-    suburb: 'Preston',
-    state: 'VIC',
-    time: '8:15 PM',
-    rakaat: '20',
-    hasWomensArea: true,
-    hasWuduFacilities: true,
-    hasParking: true,
-    submitterName: 'Mohammad Ali',
-    submitterEmail: 'mohammad@example.com',
-    status: 'approved',
-    submittedAt: new Date('2024-03-09T10:15:00'),
-  },
-];
-
 const AdminPanel = () => {
   const { toast } = useToast();
-  const [submissions, setSubmissions] = useState<Submission[]>(mockSubmissions);
+  const { data: submissions = [], isLoading } = useSubmissions();
+  const approveSubmission = useApproveSubmission();
+  const rejectSubmission = useRejectSubmission();
+  const deleteSubmission = useDeleteSubmission();
+  const updateSubmission = useUpdateSubmission();
+  
   const [selectedSubmission, setSelectedSubmission] = useState<Submission | null>(null);
   const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
@@ -104,47 +67,80 @@ const AdminPanel = () => {
   const approvedSubmissions = submissions.filter(s => s.status === 'approved');
   const rejectedSubmissions = submissions.filter(s => s.status === 'rejected');
   
-  const handleApprove = (submission: Submission) => {
-    setSubmissions(submissions.map(s => 
-      s.id === submission.id ? { ...s, status: 'approved' } : s
-    ));
-    toast({
-      title: "Submission Approved",
-      description: `"${submission.mosqueName}" has been approved and published.`,
-    });
-  };
-  
-  const handleReject = (submission: Submission) => {
-    setSubmissions(submissions.map(s => 
-      s.id === submission.id ? { ...s, status: 'rejected' } : s
-    ));
-    toast({
-      title: "Submission Rejected",
-      description: `"${submission.mosqueName}" has been rejected.`,
-    });
-  };
-  
-  const handleDelete = () => {
-    if (selectedSubmission) {
-      setSubmissions(submissions.filter(s => s.id !== selectedSubmission.id));
-      setIsDeleteDialogOpen(false);
+  const handleApprove = async (submission: Submission) => {
+    try {
+      await approveSubmission.mutateAsync(submission.id);
       toast({
-        title: "Submission Deleted",
-        description: `"${selectedSubmission.mosqueName}" has been deleted.`,
+        title: "Submission Approved",
+        description: `"${submission.mosqueName}" has been approved and published.`,
+      });
+    } catch (error) {
+      console.error(error);
+      toast({
+        title: "Error",
+        description: "Failed to approve submission",
+        variant: "destructive",
       });
     }
   };
   
-  const handleEdit = () => {
-    if (selectedSubmission && editedSubmission) {
-      setSubmissions(submissions.map(s => 
-        s.id === selectedSubmission.id ? { ...s, ...editedSubmission } : s
-      ));
-      setIsEditDialogOpen(false);
+  const handleReject = async (submission: Submission) => {
+    try {
+      await rejectSubmission.mutateAsync(submission.id);
       toast({
-        title: "Submission Updated",
-        description: `"${selectedSubmission.mosqueName}" has been updated.`,
+        title: "Submission Rejected",
+        description: `"${submission.mosqueName}" has been rejected.`,
       });
+    } catch (error) {
+      console.error(error);
+      toast({
+        title: "Error",
+        description: "Failed to reject submission",
+        variant: "destructive",
+      });
+    }
+  };
+  
+  const handleDelete = async () => {
+    if (selectedSubmission) {
+      try {
+        await deleteSubmission.mutateAsync(selectedSubmission.id);
+        setIsDeleteDialogOpen(false);
+        toast({
+          title: "Submission Deleted",
+          description: `"${selectedSubmission.mosqueName}" has been deleted.`,
+        });
+      } catch (error) {
+        console.error(error);
+        toast({
+          title: "Error",
+          description: "Failed to delete submission",
+          variant: "destructive",
+        });
+      }
+    }
+  };
+  
+  const handleEdit = async () => {
+    if (selectedSubmission && Object.keys(editedSubmission).length > 0) {
+      try {
+        await updateSubmission.mutateAsync({ 
+          id: selectedSubmission.id, 
+          data: editedSubmission 
+        });
+        setIsEditDialogOpen(false);
+        toast({
+          title: "Submission Updated",
+          description: `"${selectedSubmission.mosqueName}" has been updated.`,
+        });
+      } catch (error) {
+        console.error(error);
+        toast({
+          title: "Error",
+          description: "Failed to update submission",
+          variant: "destructive",
+        });
+      }
     }
   };
   
@@ -155,7 +151,7 @@ const AdminPanel = () => {
   
   const openEditDialog = (submission: Submission) => {
     setSelectedSubmission(submission);
-    setEditedSubmission(submission);
+    setEditedSubmission({});
     setIsEditDialogOpen(true);
   };
   
@@ -186,117 +182,126 @@ const AdminPanel = () => {
       </div>
       
       <div className="glass-card overflow-hidden">
-        <div className="overflow-x-auto">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Mosque Name</TableHead>
-                <TableHead>Location</TableHead>
-                <TableHead>Rakaat</TableHead>
-                <TableHead>Submitted By</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {submissions.length === 0 ? (
+        {isLoading ? (
+          <div className="p-8 text-center">
+            <div className="animate-spin h-8 w-8 border-4 border-islamic-300 border-t-islamic-600 rounded-full mx-auto mb-4"></div>
+            <p className="text-muted-foreground">Loading submissions...</p>
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
                 <TableRow>
-                  <TableCell colSpan={6} className="text-center py-6 text-muted-foreground">
-                    No submissions found
-                  </TableCell>
+                  <TableHead>Mosque Name</TableHead>
+                  <TableHead>Location</TableHead>
+                  <TableHead>Rakaat</TableHead>
+                  <TableHead>Submitted By</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
-              ) : (
-                submissions.map((submission) => (
-                  <TableRow key={submission.id}>
-                    <TableCell className="font-medium">
-                      {submission.mosqueName}
-                    </TableCell>
-                    <TableCell>
-                      {submission.suburb}, {submission.state}
-                    </TableCell>
-                    <TableCell>{submission.rakaat} Rakaat</TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-1">
-                        <User className="h-3 w-3 text-muted-foreground" />
-                        {submission.submitterName}
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      {submission.status === 'pending' && (
-                        <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200">
-                          Pending
-                        </Badge>
-                      )}
-                      {submission.status === 'approved' && (
-                        <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
-                          Approved
-                        </Badge>
-                      )}
-                      {submission.status === 'rejected' && (
-                        <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200">
-                          Rejected
-                        </Badge>
-                      )}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex items-center justify-end gap-2">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => openViewDialog(submission)}
-                          title="View details"
-                        >
-                          <Eye className="h-4 w-4 text-muted-foreground" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => openEditDialog(submission)}
-                          title="Edit"
-                        >
-                          <Edit className="h-4 w-4 text-muted-foreground" />
-                        </Button>
-                        
-                        {submission.status === 'pending' && (
-                          <>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="text-green-600 hover:text-green-700 hover:bg-green-50"
-                              onClick={() => handleApprove(submission)}
-                              title="Approve"
-                            >
-                              <Check className="h-4 w-4" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                              onClick={() => handleReject(submission)}
-                              title="Reject"
-                            >
-                              <X className="h-4 w-4" />
-                            </Button>
-                          </>
-                        )}
-                        
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                          onClick={() => openDeleteDialog(submission)}
-                          title="Delete"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
+              </TableHeader>
+              <TableBody>
+                {submissions.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={6} className="text-center py-6 text-muted-foreground">
+                      No submissions found
                     </TableCell>
                   </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
-        </div>
+                ) : (
+                  submissions.map((submission) => (
+                    <TableRow key={submission.id}>
+                      <TableCell className="font-medium">
+                        {submission.mosqueName}
+                      </TableCell>
+                      <TableCell>
+                        {submission.suburb}, {submission.state}
+                      </TableCell>
+                      <TableCell>{submission.rakaat} Rakaat</TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-1">
+                          <User className="h-3 w-3 text-muted-foreground" />
+                          {submission.submitterName}
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        {submission.status === 'pending' && (
+                          <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200">
+                            Pending
+                          </Badge>
+                        )}
+                        {submission.status === 'approved' && (
+                          <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+                            Approved
+                          </Badge>
+                        )}
+                        {submission.status === 'rejected' && (
+                          <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200">
+                            Rejected
+                          </Badge>
+                        )}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex items-center justify-end gap-2">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => openViewDialog(submission)}
+                            title="View details"
+                          >
+                            <Eye className="h-4 w-4 text-muted-foreground" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => openEditDialog(submission)}
+                            title="Edit"
+                          >
+                            <Edit className="h-4 w-4 text-muted-foreground" />
+                          </Button>
+                          
+                          {submission.status === 'pending' && (
+                            <>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="text-green-600 hover:text-green-700 hover:bg-green-50"
+                                onClick={() => handleApprove(submission)}
+                                title="Approve"
+                                disabled={approveSubmission.isPending}
+                              >
+                                <Check className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                                onClick={() => handleReject(submission)}
+                                title="Reject"
+                                disabled={rejectSubmission.isPending}
+                              >
+                                <X className="h-4 w-4" />
+                              </Button>
+                            </>
+                          )}
+                          
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                            onClick={() => openDeleteDialog(submission)}
+                            title="Delete"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </div>
+        )}
       </div>
       
       {/* View Dialog */}
@@ -368,6 +373,7 @@ const AdminPanel = () => {
                     handleApprove(selectedSubmission);
                     setIsViewDialogOpen(false);
                   }}
+                  disabled={approveSubmission.isPending}
                 >
                   <Check className="h-4 w-4 mr-2" />
                   Approve
@@ -379,6 +385,7 @@ const AdminPanel = () => {
                     handleReject(selectedSubmission);
                     setIsViewDialogOpen(false);
                   }}
+                  disabled={rejectSubmission.isPending}
                 >
                   <X className="h-4 w-4 mr-2" />
                   Reject
@@ -405,8 +412,11 @@ const AdminPanel = () => {
                 <Label htmlFor="edit-name">Mosque Name</Label>
                 <Input 
                   id="edit-name" 
-                  value={editedSubmission.mosqueName || ''} 
-                  onChange={(e) => setEditedSubmission({...editedSubmission, mosqueName: e.target.value})}
+                  defaultValue={selectedSubmission.mosqueName}
+                  onChange={(e) => setEditedSubmission({
+                    ...editedSubmission, 
+                    mosqueName: e.target.value
+                  })}
                 />
               </div>
               
@@ -414,8 +424,11 @@ const AdminPanel = () => {
                 <Label htmlFor="edit-address">Address</Label>
                 <Input 
                   id="edit-address" 
-                  value={editedSubmission.address || ''}
-                  onChange={(e) => setEditedSubmission({...editedSubmission, address: e.target.value})}
+                  defaultValue={selectedSubmission.address}
+                  onChange={(e) => setEditedSubmission({
+                    ...editedSubmission, 
+                    address: e.target.value
+                  })}
                 />
               </div>
               
@@ -424,16 +437,22 @@ const AdminPanel = () => {
                   <Label htmlFor="edit-suburb">Suburb</Label>
                   <Input 
                     id="edit-suburb" 
-                    value={editedSubmission.suburb || ''}
-                    onChange={(e) => setEditedSubmission({...editedSubmission, suburb: e.target.value})}
+                    defaultValue={selectedSubmission.suburb}
+                    onChange={(e) => setEditedSubmission({
+                      ...editedSubmission, 
+                      suburb: e.target.value
+                    })}
                   />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="edit-state">State</Label>
                   <Input 
                     id="edit-state" 
-                    value={editedSubmission.state || ''}
-                    onChange={(e) => setEditedSubmission({...editedSubmission, state: e.target.value})}
+                    defaultValue={selectedSubmission.state}
+                    onChange={(e) => setEditedSubmission({
+                      ...editedSubmission, 
+                      state: e.target.value
+                    })}
                   />
                 </div>
               </div>
@@ -443,16 +462,22 @@ const AdminPanel = () => {
                   <Label htmlFor="edit-time">Prayer Time</Label>
                   <Input 
                     id="edit-time" 
-                    value={editedSubmission.time || ''}
-                    onChange={(e) => setEditedSubmission({...editedSubmission, time: e.target.value})}
+                    defaultValue={selectedSubmission.time}
+                    onChange={(e) => setEditedSubmission({
+                      ...editedSubmission, 
+                      time: e.target.value
+                    })}
                   />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="edit-rakaat">Rakaat</Label>
                   <Input 
                     id="edit-rakaat" 
-                    value={editedSubmission.rakaat || ''}
-                    onChange={(e) => setEditedSubmission({...editedSubmission, rakaat: e.target.value})}
+                    defaultValue={selectedSubmission.rakaat}
+                    onChange={(e) => setEditedSubmission({
+                      ...editedSubmission, 
+                      rakaat: e.target.value
+                    })}
                   />
                 </div>
               </div>
@@ -463,8 +488,12 @@ const AdminPanel = () => {
             <Button variant="secondary" onClick={() => setIsEditDialogOpen(false)}>
               Cancel
             </Button>
-            <Button onClick={handleEdit} className="bg-islamic-600 hover:bg-islamic-700 text-white">
-              Save Changes
+            <Button 
+              onClick={handleEdit} 
+              className="bg-islamic-600 hover:bg-islamic-700 text-white"
+              disabled={updateSubmission.isPending}
+            >
+              {updateSubmission.isPending ? 'Saving...' : 'Save Changes'}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -496,9 +525,19 @@ const AdminPanel = () => {
             <Button 
               variant="destructive" 
               onClick={handleDelete}
+              disabled={deleteSubmission.isPending}
             >
-              <Trash2 className="h-4 w-4 mr-2" />
-              Delete
+              {deleteSubmission.isPending ? (
+                <div className="flex items-center">
+                  <div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full mr-2"></div>
+                  Deleting...
+                </div>
+              ) : (
+                <>
+                  <Trash2 className="h-4 w-4 mr-2" />
+                  Delete
+                </>
+              )}
             </Button>
           </DialogFooter>
         </DialogContent>
