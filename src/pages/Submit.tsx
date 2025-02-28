@@ -1,7 +1,7 @@
 
 import React from 'react';
 import SubmissionForm from '@/components/SubmissionForm';
-import { Mosque, MapPin, ClipboardEdit } from 'lucide-react';
+import { Building2, MapPin, ClipboardEdit } from 'lucide-react';
 
 const Submit = () => {
   return (
@@ -29,7 +29,7 @@ const Submit = () => {
           <div className="mt-12 bg-islamic-50 rounded-xl p-6">
             <div className="flex items-start">
               <div className="bg-islamic-100 p-3 rounded-full mr-4">
-                <Mosque className="h-6 w-6 text-islamic-600" />
+                <Building2 className="h-6 w-6 text-islamic-600" />
               </div>
               <div>
                 <h3 className="font-medium text-lg mb-2">About Taraweeh Prayers</h3>
