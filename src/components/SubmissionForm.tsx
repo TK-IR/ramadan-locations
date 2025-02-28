@@ -1,9 +1,7 @@
 
-import React, { useState } from 'react';
-import { useToast } from "@/hooks/use-toast";
+import React from 'react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { 
   Select,
   SelectContent,
@@ -27,7 +25,7 @@ import {
 } from "@/components/ui/form";
 import { Send, Loader2 } from 'lucide-react';
 import { useSubmitLocation } from '@/hooks/use-data';
-import { prepareSubmissionForInsert } from '@/lib/adapters';
+import { prepareSubmissionForInsert, SubmissionFormData } from '@/lib/adapters';
 
 const formSchema = z.object({
   mosqueName: z.string().min(2, {
@@ -85,7 +83,24 @@ const SubmissionForm = () => {
   
   async function onSubmit(values: z.infer<typeof formSchema>) {
     try {
-      const data = prepareSubmissionForInsert(values);
+      // Explicitly type the values as SubmissionFormData to satisfy TypeScript
+      const submissionData: SubmissionFormData = {
+        mosqueName: values.mosqueName,
+        address: values.address,
+        suburb: values.suburb,
+        state: values.state,
+        time: values.time,
+        rakaat: values.rakaat,
+        hasWomensArea: values.hasWomensArea,
+        hasWuduFacilities: values.hasWuduFacilities,
+        hasParking: values.hasParking,
+        parkingType: values.parkingType,
+        submitterName: values.submitterName,
+        submitterEmail: values.submitterEmail,
+        additionalInfo: values.additionalInfo,
+      };
+      
+      const data = prepareSubmissionForInsert(submissionData);
       await submitLocation.mutateAsync(data);
       form.reset();
     } catch (error) {

@@ -42,8 +42,8 @@ export function adaptSubmission(dbSubmission: Database['public']['Tables']['subm
   };
 }
 
-// Convert submission from application type to Supabase insert
-export function prepareSubmissionForInsert(submission: {
+// Define the type for submission data from the form
+export type SubmissionFormData = {
   mosqueName: string;
   address: string;
   suburb: string;
@@ -57,7 +57,10 @@ export function prepareSubmissionForInsert(submission: {
   submitterName: string;
   submitterEmail: string;
   additionalInfo?: string;
-}): Database['public']['Tables']['submissions']['Insert'] {
+};
+
+// Convert submission from application type to Supabase insert
+export function prepareSubmissionForInsert(submission: SubmissionFormData): Database['public']['Tables']['submissions']['Insert'] {
   return {
     mosque_name: submission.mosqueName,
     address: submission.address,
