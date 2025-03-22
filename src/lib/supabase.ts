@@ -8,13 +8,14 @@ const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
 // Check if the environment variables are set
 if (!supabaseUrl || !supabaseAnonKey) {
-  console.error('Missing Supabase environment variables. Please set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY.');
+  console.error('Missing Supabase environment variables. Please set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY in your environment.');
+  // You can find these values in your Supabase project settings
 }
 
-// Create the Supabase client
+// Create the Supabase client with better error handling
 export const supabase = createClient<Database>(
-  supabaseUrl || 'https://placeholder-url.supabase.co',
-  supabaseAnonKey || 'placeholder-key'
+  supabaseUrl || '',  // Using empty string instead of placeholder to make the error more obvious
+  supabaseAnonKey || ''
 );
 
 // Helper function to check if a user is an admin
